@@ -29,6 +29,9 @@ async def test_aresponses_context_management_and_shell_request_body_matches_expe
     with open(expected_path) as f:
         expected_body = json.load(f)
 
+    call_input = expected_body["input"]
+    expected_body["input"] = [{"role": "user", "content": call_input}]
+
     # Minimal Responses API response so parsing succeeds
     mock_response = {
         "id": "resp_ctx_shell_test",
@@ -42,9 +45,7 @@ async def test_aresponses_context_management_and_shell_request_body_matches_expe
                 "id": "msg_1",
                 "status": "completed",
                 "role": "assistant",
-                "content": [
-                    {"type": "output_text", "text": "Done.", "annotations": []}
-                ],
+                "content": [{"type": "output_text", "text": "Done.", "annotations": []}],
             }
         ],
         "parallel_tool_calls": True,
@@ -87,7 +88,7 @@ async def test_aresponses_context_management_and_shell_request_body_matches_expe
 
         await litellm.aresponses(
             model="openai/gpt-4o",
-            input=expected_body["input"],
+            input=call_input,
             context_management=expected_body["context_management"],
             tools=expected_body["tools"],
             tool_choice=expected_body["tool_choice"],
@@ -99,6 +100,6 @@ async def test_aresponses_context_management_and_shell_request_body_matches_expe
 
         for key, expected_value in expected_body.items():
             assert key in request_body, f"Missing key in request body: {key}"
-            assert (
-                request_body[key] == expected_value
-            ), f"Mismatch for key {key}: got {request_body[key]!r}, expected {expected_value!r}"
+            assert request_body[key] == expected_value, (
+                f"Mismatch for key {key}: got {request_body[key]!r}, expected {expected_value!r}"
+            )

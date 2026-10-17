@@ -562,6 +562,15 @@ async def aresponses(
         )
 
 
+def _normalize_responses_api_string_input(input: str | ResponseInputParam) -> ResponseInputParam:
+    """Return list-form ``input``; OpenAI's Responses API accepts a plain string, but provider transforms
+    that only handle the array shape turn it into a spurious client-facing 400 (#41963).
+    """
+    if isinstance(input, str):
+        return cast(ResponseInputParam, [{"role": "user", "content": input}])
+    return input
+
+
 def _apply_prompt_management_to_responses_call(
     input: Union[str, ResponseInputParam],
     model: str,
@@ -955,6 +964,9 @@ def responses(
         # Update input and tools with provider-specific file IDs if managed files are used
         #########################################################
         input, tools = _apply_managed_file_id_mapping(input=input, tools=tools, kwargs=kwargs, local_vars=local_vars)
+
+        input = _normalize_responses_api_string_input(input)
+        local_vars["input"] = input
 
         #########################################################
         # Native MCP Responses API
